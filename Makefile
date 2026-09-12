@@ -2,7 +2,7 @@
 # compiled straight into this tweak and uses iOS 15+ UIKit APIs unguarded
 # (UITableView.sectionHeaderTopPadding, UIButtonConfiguration, UIListContentConfiguration);
 # with a 14.0 target those calls are -Werror availability errors. The Swift side already
-# guards its iOS 15/16 APIs with #available, so 15.0 is the lowest target that builds it all.
+# guards its iOS 15/16 APIs with #available.
 TARGET := iphone:clang:latest:15.0
 INSTALL_TARGET_PROCESSES = Spotify
 ARCHS = arm64
@@ -34,7 +34,14 @@ EeveeSpotify_EXTRA_FRAMEWORKS = EeveeSwiftProtobuf
 EeveeSpotify_FRAMEWORKS += QuartzCore
 # spoti.pw's own headers use quote-includes relative to its Sources/ dir (e.g. "Core/SGCore.h"),
 # same as it does building standalone, so it needs that dir on the search path here too.
-EeveeSpotify_CFLAGS = -fobjc-arc -ISources/EeveeSpotifyC/include -I$(SPOTIPW_DIR)/Sources -DSG_VERSION=\"$(SG_VERSION)\" -Os
+#
+# The latest SDK (26.x) marks UIKit APIs the sub repo uses as iOS 17/26-only, e.g.
+# UIButtonConfiguration.glassButtonConfiguration and UIImageView.addSymbolEffect:. spoti.pw
+# guards every such call with respondsToSelector: at runtime (that's how it builds against its
+# pinned 16.5 SDK), but the compiler can't see those guards, so with -Werror they'd fail the
+# build. Downgrade just this diagnostic group back to a warning — it stays visible in the log,
+# and every other -Werror check keeps failing the build as before.
+EeveeSpotify_CFLAGS = -fobjc-arc -ISources/EeveeSpotifyC/include -I$(SPOTIPW_DIR)/Sources -DSG_VERSION=\"$(SG_VERSION)\" -Os -Wno-error=unguarded-availability-new
 # spoti.pw's .x files use Logos %hook; "internal" swizzles at runtime instead of linking
 # CydiaSubstrate, matching how spoti.pw builds on its own (see its Makefile) and keeping this
 # combined dylib dependency-free the same way.
