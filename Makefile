@@ -1,4 +1,9 @@
-TARGET := iphone:clang:latest:14.0
+# iOS 15.0 floor: the spoti.pw sub repo (Sources/EeveeSpotifyC/SubRepos/spoti.pw) is
+# compiled straight into this tweak and uses iOS 15+ UIKit APIs unguarded
+# (UITableView.sectionHeaderTopPadding, UIButtonConfiguration, UIListContentConfiguration);
+# with a 14.0 target those calls are -Werror availability errors. The Swift side already
+# guards its iOS 15/16 APIs with #available, so 15.0 is the lowest target that builds it all.
+TARGET := iphone:clang:latest:15.0
 INSTALL_TARGET_PROCESSES = Spotify
 ARCHS = arm64
 
