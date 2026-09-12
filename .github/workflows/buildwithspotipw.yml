@@ -1,4 +1,4 @@
-name: Build IPA with spoti.pw built seperately
+name: Build IPA with spoti.pw 
 
 on:
   workflow_dispatch:
