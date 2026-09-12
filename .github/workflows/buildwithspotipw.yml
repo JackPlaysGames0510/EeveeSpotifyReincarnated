@@ -95,6 +95,11 @@ jobs:
           git clone --depth 1 https://github.com/SideloadLabs/spoti.pw.git "$SPOTIPW_DIR"
           cd "$SPOTIPW_DIR"
           export THEOS
+          # The flag table is generated from the decrypted Spotify IPA and gitignored
+          # upstream; generate it the same way spoti.pw's own pipeline.sh does so the
+          # standalone tweak build links. Needs macOS tools: otool/nm/strings (present).
+          wget "${{ inputs.ipa_url }}" --no-verbose -O "$RUNNER_TEMP/flags-ipa"
+          python3 scripts/extract-flags.py "$RUNNER_TEMP/flags-ipa"
           echo "==> building spotifyglass tweak"
           gmake -C tweak clean package >/dev/null
           SPOTIPW_DEB="$(ls -t tweak/packages/*.deb | head -1)"

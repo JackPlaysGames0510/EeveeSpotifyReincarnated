@@ -28,7 +28,16 @@ SPOTIPW_DIR := Sources/EeveeSpotifyC/SubRepos/spoti.pw/tweak
 SPOTIPW_CONTROL := $(SPOTIPW_DIR)/control
 SG_VERSION := $(if $(wildcard $(SPOTIPW_CONTROL)),$(shell sed -n 's/^Version: //p' $(SPOTIPW_CONTROL)),0.0.0)
 
+# spoti.pw's flag table (SGFlagList.m) is generated from a decrypted Spotify IPA and
+# gitignored upstream, so it's absent from a fresh checkout and FlagsPage.m fails to link
+# (undefined SGFlagTable/SGFlagCount). Compile a checked-in empty-table stub in that case:
+# the tweak links and the All-flags page just lists nothing. Run the submodule's
+# scripts/extract-flags.py on a decrypted IPA to get the real table; this stub then drops out.
+SGFLAGLIST := $(SPOTIPW_DIR)/Sources/Features/Flags/SGFlagList.m
 EeveeSpotify_FILES = $(shell find Sources/EeveeSpotify -name '*.swift') $(shell find Sources/EeveeSpotifyC -name '*.m' -o -name '*.c' -o -name '*.mm' -o -name '*.cpp' -o -name '*.x')
+ifeq ($(wildcard $(SGFLAGLIST)),)
+EeveeSpotify_FILES += Tools/SGFlagListStub.m
+endif
 EeveeSpotify_SWIFTFLAGS = -ISources/EeveeSpotifyC/include -Osize
 EeveeSpotify_EXTRA_FRAMEWORKS = EeveeSwiftProtobuf
 EeveeSpotify_FRAMEWORKS += QuartzCore
