@@ -15,10 +15,25 @@ BRANCH_NAME_FINAL := $(if $(BRANCH_NAME),$(BRANCH_NAME),Master)
 $(shell mkdir -p Sources/EeveeSpotify/Generated)
 $(shell printf 'enum GeneratedConfig {\n    static let repoSlug = "%s"\n    static let branchName = "%s"\n}\n' "$(REPO_SLUG_FINAL)" "$(BRANCH_NAME_FINAL)" > Sources/EeveeSpotify/Generated/RepoSlug.swift)
 
-EeveeSpotify_FILES = $(shell find Sources/EeveeSpotify -name '*.swift') $(shell find Sources/EeveeSpotifyC -name '*.m' -o -name '*.c' -o -name '*.mm' -o -name '*.cpp')
+# spoti.pw is a sub repo at Sources/EeveeSpotifyC/SubRepos/spoti.pw, built straight into this
+# same tweak binary rather than as a package of its own. SG_VERSION mirrors what spoti.pw's own
+# Makefile bakes in from its control file; it's read as empty (not an error) before the sub repo
+# is checked out, so a fresh clone can still `make` — it just won't have spoti.pw's code yet.
+SPOTIPW_DIR := Sources/EeveeSpotifyC/SubRepos/spoti.pw/tweak
+SPOTIPW_CONTROL := $(SPOTIPW_DIR)/control
+SG_VERSION := $(if $(wildcard $(SPOTIPW_CONTROL)),$(shell sed -n 's/^Version: //p' $(SPOTIPW_CONTROL)),0.0.0)
+
+EeveeSpotify_FILES = $(shell find Sources/EeveeSpotify -name '*.swift') $(shell find Sources/EeveeSpotifyC -name '*.m' -o -name '*.c' -o -name '*.mm' -o -name '*.cpp' -o -name '*.x')
 EeveeSpotify_SWIFTFLAGS = -ISources/EeveeSpotifyC/include -Osize
 EeveeSpotify_EXTRA_FRAMEWORKS = EeveeSwiftProtobuf
-EeveeSpotify_CFLAGS = -fobjc-arc -ISources/EeveeSpotifyC/include -Os
+EeveeSpotify_FRAMEWORKS += QuartzCore
+# spoti.pw's own headers use quote-includes relative to its Sources/ dir (e.g. "Core/SGCore.h"),
+# same as it does building standalone, so it needs that dir on the search path here too.
+EeveeSpotify_CFLAGS = -fobjc-arc -ISources/EeveeSpotifyC/include -I$(SPOTIPW_DIR)/Sources -DSG_VERSION=\"$(SG_VERSION)\" -Os
+# spoti.pw's .x files use Logos %hook; "internal" swizzles at runtime instead of linking
+# CydiaSubstrate, matching how spoti.pw builds on its own (see its Makefile) and keeping this
+# combined dylib dependency-free the same way.
+EeveeSpotify_LOGOS_DEFAULT_GENERATOR := internal
 
 # RootHide's compatibility implementation of libroot resolves jailbreak paths
 # through libroothide at runtime. Rootless builds continue to use libroot.
