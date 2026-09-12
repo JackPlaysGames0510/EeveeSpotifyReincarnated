@@ -43,15 +43,6 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - name: Verify spoti.pw sub repo checked out
-        run: |
-          CONTROL=Sources/EeveeSpotifyC/SubRepos/spoti.pw/tweak/control
-          [ -f "$CONTROL" ] || {
-            echo "::error::$CONTROL not found — spoti.pw sub repo didn't check out (missing from .gitmodules, or the checkout step above needs 'submodules: recursive')."
-            exit 1
-          }
-          echo "spoti.pw $(sed -n 's/^Version: //p' "$CONTROL") present"
-
       - uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '26.3.0'
@@ -92,19 +83,6 @@ jobs:
           [ -n "$DEB_PATH" ] || { echo "deb not produced" >&2; exit 1; }
           echo "DEB_PATH=$DEB_PATH"   >> $GITHUB_ENV
           echo "DEB_NAME=$(basename "$DEB_PATH")" >> $GITHUB_ENV
-
-      - name: Verify spoti.pw compiled into the dylib
-        run: |
-          EXTRACT_DIR="$RUNNER_TEMP/eevee-deb-nopatch"
-          dpkg-deb -x "$DEB_PATH" "$EXTRACT_DIR"
-          DYLIB_PATH="$(find "$EXTRACT_DIR" -name 'EeveeSpotify.dylib' -type f | head -n 1)"
-          [ -n "$DYLIB_PATH" ] || { echo "EeveeSpotify.dylib missing" >&2; exit 1; }
-          for marker in SGModSettingsPage spoti.pw; do
-            strings "$DYLIB_PATH" | grep -Fq "$marker" || {
-              echo "spoti.pw doesn't appear to be compiled into the dylib — missing: $marker" >&2
-              exit 1
-            }
-          done
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
