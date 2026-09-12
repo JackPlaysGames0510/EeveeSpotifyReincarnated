@@ -46,6 +46,15 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Verify spoti.pw sub repo checked out
+        run: |
+          CONTROL=Sources/EeveeSpotifyC/SubRepos/spoti.pw/tweak/control
+          [ -f "$CONTROL" ] || {
+            echo "::error::$CONTROL not found — spoti.pw sub repo didn't check out (missing from .gitmodules, or the checkout step above needs 'submodules: recursive')."
+            exit 1
+          }
+          echo "spoti.pw $(sed -n 's/^Version: //p' "$CONTROL") present"
+
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -134,6 +143,14 @@ jobs:
             downloadToggledWithCurrentAvailability:addAction:removeAction:pageIdentifier:pageURI:interactionID:; do
             strings "$DYLIB_PATH" | grep -Fq "$marker" || {
               echo "Compiled banner blocker marker missing: $marker" >&2
+              exit 1
+            }
+          done
+          # spoti.pw compiled into the same dylib, not a package of its own — SGModSettingsPage
+          # is the entry point EeveeSettingsView.swift calls; "spoti.pw" is the page's own title.
+          for marker in SGModSettingsPage spoti.pw; do
+            strings "$DYLIB_PATH" | grep -Fq "$marker" || {
+              echo "spoti.pw doesn't appear to be compiled into the dylib — missing: $marker" >&2
               exit 1
             }
           done
